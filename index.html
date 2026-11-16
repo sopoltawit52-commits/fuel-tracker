@@ -93,7 +93,7 @@
         <!-- วันที่และเวลา -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลาเติม</label>
-          <input type="datetime-local" id="dateInput" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input type="datetime-local" id="dateInput" required onchange="updateDaysSinceLastFill()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <!-- ชนิดน้ำมัน -->
@@ -194,6 +194,28 @@
               </div>
               <p class="text-[11px] text-slate-500 leading-tight">
                 *กดปุ่มเพื่อเปิด Maps ดูจำนวนกิโลเมตร แล้วนำมากรอกในช่องด้านล่าง
+              </p>
+            </div>
+
+            <!-- ตัวช่วยคำนวณตามจำนวนวันนับจากรอบเติมก่อนหน้า -->
+            <div id="daysCalcBox" class="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 space-y-2 text-xs">
+              <div class="flex items-center justify-between text-indigo-950 font-semibold">
+                <span class="flex items-center space-x-1">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-600"></i>
+                  <span>นับจากเติมรอบล่าสุด:</span>
+                </span>
+                <span id="daysSinceLastFill" class="font-bold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">- วัน</span>
+              </div>
+              <div class="flex items-center space-x-1.5 pt-1">
+                <span class="text-slate-600 text-[11px] whitespace-nowrap">ขับเฉลี่ย:</span>
+                <input type="number" id="dailyKmInput" value="25" oninput="previewDaysCalc()" class="w-16 px-2 py-1 bg-white border border-indigo-300 rounded text-center font-bold text-indigo-900 focus:outline-none">
+                <span class="text-slate-600 text-[11px]">กม./วัน</span>
+                <button type="button" onclick="applyDaysCalc()" class="ml-auto px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded text-xs transition shadow-sm">
+                  คำนวณใส่ช่อง (<span id="calcPreviewKm">25</span> กม.)
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-500 leading-tight">
+                *ไม่ต้องนั่งบวกทีละวันใน Maps ระบบจะนำ (จำนวนวัน × กม.เฉลี่ยต่อวัน) ให้ทันที
               </p>
             </div>
 
@@ -400,6 +422,7 @@
       localStorage.setItem('fuel_records_db', JSON.stringify(logs));
       updateDashboardSummary();
       renderHistoryList();
+      updateDaysSinceLastFill();
     }
 
     function switchTab(tab) {
@@ -671,9 +694,48 @@
       showToast('ซิงค์ข้อมูลขึ้น Google Sheets สำเร็จ!');
     }
 
+    function updateDaysSinceLastFill() {
+      const logs = getLocalLogs();
+      const badge = document.getElementById('daysSinceLastFill');
+      if (!badge) return;
+
+      if (logs.length > 0 && logs[0].date) {
+        const lastDate = new Date(logs[0].date);
+        const currInput = document.getElementById('dateInput').value;
+        const currDate = currInput ? new Date(currInput) : new Date();
+        const diffMs = currDate - lastDate;
+        const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+        window.currentDiffDays = diffDays;
+        badge.textContent = `${diffDays} วันที่ผ่านมา`;
+      } else {
+        window.currentDiffDays = 1;
+        badge.textContent = `รอบแรก (กำหนดวันเอง)`;
+      }
+      previewDaysCalc();
+    }
+
+    function previewDaysCalc() {
+      const days = window.currentDiffDays || 1;
+      const kmPerDay = parseFloat(document.getElementById('dailyKmInput').value) || 25;
+      const totalKm = Math.round(days * kmPerDay);
+      const prevEl = document.getElementById('calcPreviewKm');
+      if (prevEl) prevEl.textContent = totalKm;
+    }
+
+    function applyDaysCalc() {
+      const days = window.currentDiffDays || 1;
+      const kmPerDay = parseFloat(document.getElementById('dailyKmInput').value) || 25;
+      const totalKm = Math.round(days * kmPerDay);
+      document.getElementById('estDistance').value = totalKm;
+      document.getElementById('tripDesc').value = `วิ่งใช้งาน ${days} วัน (~${kmPerDay} กม./วัน)`;
+      calculateStats();
+      showToast(`คำนวณใส่ช่องแล้ว: ${days} วัน × ${kmPerDay} กม. = ${totalKm} กม.`);
+    }
+
     // Init
     updateDashboardSummary();
     renderHistoryList();
+    updateDaysSinceLastFill();
   </script>
 </body>
 </html>

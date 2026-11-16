@@ -76,12 +76,16 @@
 
     <!-- Navigation Tabs -->
     <div class="flex bg-slate-200 p-1 rounded-xl mb-4 text-xs font-semibold">
-      <button id="tabRecordBtn" onclick="switchTab('record')" class="flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1">
-        <i data-lucide="plus-circle" class="w-4 h-4"></i>
-        <span>บันทึกเติมน้ำมัน</span>
+      <button id="tabRecordBtn" onclick="switchTab('record')" class="flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1 font-bold">
+        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+        <span>บันทึกเติม</span>
+      </button>
+      <button id="tabSummaryBtn" onclick="switchTab('summary')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1">
+        <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+        <span>📊 สรุปผล</span>
       </button>
       <button id="tabHistoryBtn" onclick="switchTab('history')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1">
-        <i data-lucide="history" class="w-4 h-4"></i>
+        <i data-lucide="history" class="w-3.5 h-3.5"></i>
         <span>ประวัติ (<span id="historyBadgeCount">0</span>)</span>
       </button>
     </div>
@@ -266,7 +270,116 @@
       </form>
     </div>
 
-    <!-- View 2: ประวัติล่าสุด -->
+    <!-- View 2: สรุปผล & รายงานสถิติ (Analytics Dashboard) -->
+    <div id="viewSummary" class="hidden space-y-4">
+      <!-- Title & Filter -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-slate-800">📊 สรุปรายงาน & สถิติ</h2>
+          <p class="text-[11px] text-slate-500">วิเคราะห์การใช้น้ำมันและงบประมาณ</p>
+        </div>
+        <select id="summaryFilter" onchange="renderSummaryDashboard()" class="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-blue-500 text-slate-700 font-semibold shadow-xs">
+          <option value="all">ทั้งหมด (All Time)</option>
+          <option value="this_month">เดือนนี้</option>
+          <option value="last_month">เดือนก่อนหน้า</option>
+        </select>
+      </div>
+
+      <!-- Hero Analytics Card -->
+      <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 text-white rounded-2xl p-4 shadow-md space-y-3 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-blue-200 font-medium">ภาพรวมงบประมาณค่าน้ำมัน</span>
+          <span id="summaryPeriodBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-blue-200 border border-white/10">ทั้งหมด</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <div>
+            <div class="text-xs text-slate-300">ยอดเงินรวม</div>
+            <div id="summaryHeroTotalCost" class="text-xl font-bold text-amber-300">฿0</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-300">ปริมาณน้ำมันรวม</div>
+            <div id="summaryHeroTotalLiters" class="text-xl font-bold text-emerald-300">0 L</div>
+          </div>
+        </div>
+        <div class="pt-2.5 border-t border-white/10 grid grid-cols-3 gap-2 text-center text-xs">
+          <div>
+            <div class="text-[10px] text-slate-400">เฉลี่ยต่อวัน</div>
+            <div id="summaryHeroCostPerDay" class="font-bold text-white text-sm">฿0</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">เฉลี่ยต่อถัง</div>
+            <div id="summaryHeroDaysPerTank" class="font-bold text-white text-sm">- วัน</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">เฉลี่ยต่อครั้ง</div>
+            <div id="summaryHeroCostPerFill" class="font-bold text-white text-sm">฿0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metric Cards Grid -->
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center space-x-1.5 text-slate-500 mb-1">
+            <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-blue-600"></i>
+            <span class="text-[11px] font-semibold">จำนวนครั้งที่เติม</span>
+          </div>
+          <div id="summaryRefuelCount" class="text-base font-bold text-slate-800">0 ครั้ง</div>
+          <div class="text-[10px] text-slate-400 mt-0.5" id="summaryFullTankCount">เต็มถัง 0 ครั้ง</div>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center space-x-1.5 text-slate-500 mb-1">
+            <i data-lucide="tag" class="w-3.5 h-3.5 text-indigo-600"></i>
+            <span class="text-[11px] font-semibold">ราคาเฉลี่ยต่อลิตร</span>
+          </div>
+          <div id="summaryAvgPriceLiter" class="text-base font-bold text-indigo-700">0.00 ฿</div>
+          <div class="text-[10px] text-slate-400 mt-0.5">ราคาเฉลี่ยถ่วงน้ำหนัก</div>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center space-x-1.5 text-slate-500 mb-1">
+            <i data-lucide="gauge" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span class="text-[11px] font-semibold">สิ้นเปลืองเฉลี่ย</span>
+          </div>
+          <div id="summaryAvgKmL" class="text-base font-bold text-emerald-600">- กม./ลิตร</div>
+          <div class="text-[10px] text-slate-400 mt-0.5" id="summaryCostPerKm">- บาท/กม.</div>
+        </div>
+
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+          <div class="flex items-center space-x-1.5 text-slate-500 mb-1">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+            <span class="text-[11px] font-semibold">รอบเติมล่าสุด</span>
+          </div>
+          <div id="summaryDaysSinceLast" class="text-base font-bold text-amber-600">- วันที่แล้ว</div>
+          <div class="text-[10px] text-slate-400 mt-0.5" id="summaryLastRefuelDate">-</div>
+        </div>
+      </div>
+
+      <!-- Monthly Breakdown List with Visual Progress Bars -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+        <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+          <i data-lucide="bar-chart-3" class="w-4 h-4 text-blue-600"></i>
+          <span>สรุปค่าใช้จ่ายแยกรายเดือน</span>
+        </h3>
+        <div id="monthlyBreakdownList" class="space-y-2.5">
+          <!-- Dynamically populated monthly cards / bars -->
+        </div>
+      </div>
+
+      <!-- Fuel Type Breakdown -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs space-y-2.5">
+        <h3 class="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+          <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
+          <span>สัดส่วนประเภทน้ำมันที่ใช้</span>
+        </h3>
+        <div id="fuelTypeBreakdownList" class="space-y-2 text-xs">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- View 3: ประวัติล่าสุด -->
     <div id="viewHistory" class="hidden space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="text-xs font-bold text-slate-700">ประวัติการบันทึก (<span id="historyTotalText">0</span>)</h2>
@@ -427,20 +540,33 @@
 
     function switchTab(tab) {
       const recordView = document.getElementById('viewRecord');
+      const summaryView = document.getElementById('viewSummary');
       const historyView = document.getElementById('viewHistory');
       const recordBtn = document.getElementById('tabRecordBtn');
+      const summaryBtn = document.getElementById('tabSummaryBtn');
       const historyBtn = document.getElementById('tabHistoryBtn');
+
+      recordView.classList.add('hidden');
+      summaryView.classList.add('hidden');
+      historyView.classList.add('hidden');
+
+      const inactive = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1";
+      const active = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1 font-bold";
+
+      recordBtn.className = inactive;
+      summaryBtn.className = inactive;
+      historyBtn.className = inactive;
 
       if (tab === 'record') {
         recordView.classList.remove('hidden');
-        historyView.classList.add('hidden');
-        recordBtn.className = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1";
-        historyBtn.className = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1";
-      } else {
-        recordView.classList.add('hidden');
+        recordBtn.className = active;
+      } else if (tab === 'summary') {
+        summaryView.classList.remove('hidden');
+        summaryBtn.className = active;
+        renderSummaryDashboard();
+      } else if (tab === 'history') {
         historyView.classList.remove('hidden');
-        historyBtn.className = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1";
-        recordBtn.className = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1";
+        historyBtn.className = active;
         renderHistoryList();
       }
       lucide.createIcons();
@@ -730,6 +856,192 @@
       document.getElementById('tripDesc').value = `วิ่งใช้งาน ${days} วัน (~${kmPerDay} กม./วัน)`;
       calculateStats();
       showToast(`คำนวณใส่ช่องแล้ว: ${days} วัน × ${kmPerDay} กม. = ${totalKm} กม.`);
+    }
+
+    function renderSummaryDashboard() {
+      const allLogs = getLocalLogs();
+      const filter = document.getElementById('summaryFilter') ? document.getElementById('summaryFilter').value : 'all';
+      const periodBadge = document.getElementById('summaryPeriodBadge');
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      let logs = allLogs;
+      if (filter === 'this_month') {
+        logs = allLogs.filter(r => {
+          if (!r.date) return false;
+          const d = new Date(r.date);
+          return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+        });
+        if (periodBadge) periodBadge.textContent = 'เดือนนี้';
+      } else if (filter === 'last_month') {
+        const targetYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const targetMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        logs = allLogs.filter(r => {
+          if (!r.date) return false;
+          const d = new Date(r.date);
+          return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+        });
+        if (periodBadge) periodBadge.textContent = 'เดือนก่อนหน้า';
+      } else {
+        if (periodBadge) periodBadge.textContent = 'ข้อมูลทั้งหมด';
+      }
+
+      if (logs.length === 0) {
+        document.getElementById('summaryHeroTotalCost').textContent = '฿0';
+        document.getElementById('summaryHeroTotalLiters').textContent = '0 L';
+        document.getElementById('summaryHeroCostPerDay').textContent = '฿0';
+        document.getElementById('summaryHeroDaysPerTank').textContent = '- วัน';
+        document.getElementById('summaryHeroCostPerFill').textContent = '฿0';
+        document.getElementById('summaryRefuelCount').textContent = '0 ครั้ง';
+        document.getElementById('summaryFullTankCount').textContent = 'เต็มถัง 0 ครั้ง';
+        document.getElementById('summaryAvgPriceLiter').textContent = '0.00 ฿';
+        document.getElementById('summaryAvgKmL').textContent = '- กม./ลิตร';
+        document.getElementById('summaryCostPerKm').textContent = '- บาท/กม.';
+        document.getElementById('summaryDaysSinceLast').textContent = '-';
+        document.getElementById('summaryLastRefuelDate').textContent = 'ยังไม่มีข้อมูล';
+        document.getElementById('monthlyBreakdownList').innerHTML = `<div class="p-4 text-center text-xs text-slate-400">ยังไม่มีข้อมูลในรอบนี้</div>`;
+        document.getElementById('fuelTypeBreakdownList').innerHTML = `<div class="p-4 text-center text-xs text-slate-400">ยังไม่มีข้อมูล</div>`;
+        return;
+      }
+
+      let totalCost = 0;
+      let totalLiters = 0;
+      let totalDist = 0;
+      let distLiters = 0;
+      let fullTankCount = 0;
+
+      logs.forEach(r => {
+        const c = parseFloat(r.totalCost) || 0;
+        const l = parseFloat(r.liters) || 0;
+        const d = parseFloat(r.estDistance) || 0;
+        totalCost += c;
+        totalLiters += l;
+        if (r.isFullTank) fullTankCount++;
+        if (d > 0 && l > 0) {
+          totalDist += d;
+          distLiters += l;
+        }
+      });
+
+      const totalCount = logs.length;
+      const avgCostPerFill = totalCost / totalCount;
+      const avgPricePerLiter = totalLiters > 0 ? (totalCost / totalLiters) : 0;
+
+      // Calculate time span and days per tank
+      const sortedByDate = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
+      let costPerDay = 0;
+      let avgDaysPerTank = "-";
+
+      if (sortedByDate.length >= 2) {
+        const first = new Date(sortedByDate[0].date);
+        const last = new Date(sortedByDate[sortedByDate.length - 1].date);
+        const spanDays = Math.max(1, Math.round((last - first) / 86400000));
+        costPerDay = Math.round(totalCost / spanDays);
+        avgDaysPerTank = (spanDays / (totalCount - 1)).toFixed(1);
+      } else {
+        costPerDay = Math.round(totalCost);
+        avgDaysPerTank = "-";
+      }
+
+      // Update Hero Card
+      document.getElementById('summaryHeroTotalCost').textContent = '฿' + totalCost.toLocaleString();
+      document.getElementById('summaryHeroTotalLiters').textContent = totalLiters.toFixed(1) + ' L';
+      document.getElementById('summaryHeroCostPerDay').textContent = '฿' + costPerDay.toLocaleString();
+      document.getElementById('summaryHeroDaysPerTank').textContent = avgDaysPerTank !== "-" ? `${avgDaysPerTank} วัน` : '- วัน';
+      document.getElementById('summaryHeroCostPerFill').textContent = '฿' + Math.round(avgCostPerFill).toLocaleString();
+
+      // Update KPI Cards
+      document.getElementById('summaryRefuelCount').textContent = `${totalCount} ครั้ง`;
+      document.getElementById('summaryFullTankCount').textContent = `เต็มถัง ${fullTankCount} ครั้ง`;
+      document.getElementById('summaryAvgPriceLiter').textContent = `${avgPricePerLiter.toFixed(2)} ฿`;
+      document.getElementById('summaryAvgKmL').textContent = (totalDist > 0 && distLiters > 0) ? `${(totalDist / distLiters).toFixed(1)} กม./ลิตร` : '- กม./ลิตร';
+      document.getElementById('summaryCostPerKm').textContent = (totalDist > 0 && totalCost > 0) ? `${(totalCost / totalDist).toFixed(2)} บาท/กม.` : '- บาท/กม.';
+
+      // Days since latest refill
+      const latestRefill = allLogs[0];
+      if (latestRefill && latestRefill.date) {
+        const lastD = new Date(latestRefill.date);
+        const diffD = Math.max(0, Math.round((new Date() - lastD) / 86400000));
+        document.getElementById('summaryDaysSinceLast').textContent = `${diffD} วันที่แล้ว`;
+        document.getElementById('summaryLastRefuelDate').textContent = latestRefill.date.replace('T', ' ');
+      }
+
+      // Monthly Breakdown
+      const monthMap = {};
+      allLogs.forEach(r => {
+        if (!r.date) return;
+        const d = new Date(r.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const label = `${monthNames[d.getMonth()]} ${d.getFullYear() + 543}`;
+
+        if (!monthMap[key]) {
+          monthMap[key] = { label, cost: 0, liters: 0, count: 0 };
+        }
+        monthMap[key].cost += parseFloat(r.totalCost) || 0;
+        monthMap[key].liters += parseFloat(r.liters) || 0;
+        monthMap[key].count += 1;
+      });
+
+      const monthKeys = Object.keys(monthMap).sort().reverse();
+      let maxCost = 1;
+      monthKeys.forEach(k => { if (monthMap[k].cost > maxCost) maxCost = monthMap[k].cost; });
+
+      const monthlyListEl = document.getElementById('monthlyBreakdownList');
+      if (monthKeys.length > 0) {
+        monthlyListEl.innerHTML = monthKeys.map(k => {
+          const item = monthMap[k];
+          const pct = Math.min(100, Math.max(8, Math.round((item.cost / maxCost) * 100)));
+          return `
+            <div class="space-y-1">
+              <div class="flex justify-between items-baseline text-xs font-medium">
+                <span class="text-slate-700 font-semibold">${item.label} (${item.count} ครั้ง)</span>
+                <div>
+                  <span class="font-bold text-slate-800">฿${item.cost.toLocaleString()}</span>
+                  <span class="text-[10px] text-slate-400">(${item.liters.toFixed(1)} L)</span>
+                </div>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        monthlyListEl.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">ไม่มีข้อมูลรายเดือน</div>`;
+      }
+
+      // Fuel Type Breakdown
+      const fuelMap = {};
+      logs.forEach(r => {
+        const type = r.fuelType || 'ไม่ระบุ';
+        const cost = parseFloat(r.totalCost) || 0;
+        fuelMap[type] = (fuelMap[type] || 0) + cost;
+      });
+
+      const fuelTypes = Object.keys(fuelMap);
+      const fuelListEl = document.getElementById('fuelTypeBreakdownList');
+      if (fuelTypes.length > 0 && totalCost > 0) {
+        fuelListEl.innerHTML = fuelTypes.map(t => {
+          const c = fuelMap[t];
+          const pct = Math.round((c / totalCost) * 100);
+          return `
+            <div>
+              <div class="flex justify-between text-[11px] mb-0.5">
+                <span class="text-slate-600 font-medium">${t}</span>
+                <span class="font-semibold text-slate-800">฿${c.toLocaleString()} (${pct}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        fuelListEl.innerHTML = `<div class="p-3 text-center text-xs text-slate-400">ไม่มีข้อมูลประเภทน้ำมัน</div>`;
+      }
     }
 
     // Init

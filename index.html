@@ -34,7 +34,7 @@
         </div>
         <div>
           <h1 class="text-base font-bold leading-tight">Fuel Log Tracker</h1>
-          <p class="text-xs text-blue-200">ระบบบันทึกค่าน้ำมัน (No-Odometer)</p>
+          <p class="text-xs text-blue-200">ระบบบันทึกค่าน้ำมันอัจฉริยะ</p>
         </div>
       </div>
       <div class="flex items-center space-x-1">
@@ -49,12 +49,12 @@
   <!-- Main Container -->
   <main class="max-w-md mx-auto px-4 pt-4">
 
-    <!-- Notice Card: แก้ปัญหาไมล์เสีย -->
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-2.5 text-xs text-amber-900">
-      <i data-lucide="info" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
+    <!-- Notice Card: สลับโหมดไมล์เสีย / ไมล์จริง -->
+    <div id="modeBanner" class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-2.5 text-xs text-amber-900 transition">
+      <i id="modeBannerIcon" data-lucide="info" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
       <div>
-        <span class="font-bold">โหมดทดแทนเลขไมล์เสีย:</span> 
-        ระบบคำนวณอัตราสิ้นเปลืองจาก <b>ระยะทางประมาณการ (Google Maps / เส้นทางประจำ)</b> และ <b>สถิติค่าใช้จ่ายตามรอบเวลา</b> ให้โดยอัตโนมัติ
+        <span id="modeBannerTitle" class="font-bold">โหมดปัจจุบัน: ทดแทนเลขไมล์เสีย</span><br>
+        <span id="modeBannerDesc">ระบบจะคำนวณอัตราสิ้นเปลืองจาก <b>ระยะทางประมาณการ</b> (หากในอนาคตซ่อมไมล์แล้ว สามารถเปิดสวิตช์ใช้เลขไมล์จริงได้ทันทีด้านล่าง)</span>
       </div>
     </div>
 
@@ -140,45 +140,75 @@
           </label>
         </div>
 
-        <!-- โซนแก้ปัญหาเลขไมล์: ระยะทางและเส้นทาง -->
-        <div class="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-3">
+        <!-- SWITCH: สลับโหมดเลขไมล์รถจริง vs ประมาณการ -->
+        <div class="p-3 bg-indigo-50/80 rounded-xl border border-indigo-200/80 space-y-3">
+          
           <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-indigo-900 flex items-center space-x-1">
-              <i data-lucide="map-pin" class="w-4 h-4 text-indigo-600"></i>
-              <span>ระยะทางวิ่งช่วงนี้ (โดยประมาณ)</span>
-            </label>
-            <a href="https://maps.google.com" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center space-x-0.5">
-              <span>เปิด Maps</span>
-              <i data-lucide="external-link" class="w-3 h-3"></i>
-            </a>
-          </div>
-
-          <!-- Quick Presets -->
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="setQuickDistance(20, 'บ้าน-ที่ทำงาน')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
-              ทำงาน (~20 กม.)
-            </button>
-            <button type="button" onclick="setQuickDistance(50, 'วิ่งงานในเมือง')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
-              ในเมือง (~50 กม.)
-            </button>
-            <button type="button" onclick="setQuickDistance(100, 'ต่างจังหวัด')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
-              ต่างจังหวัด (~100 กม.)
-            </button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-[11px] text-slate-500 block mb-0.5">ระยะทางรวม (กม.)</label>
-              <input type="number" step="1" id="estDistance" placeholder="เว้นว่างได้" oninput="calculateStats()" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <div class="flex items-center space-x-1.5">
+              <i data-lucide="gauge" class="w-4 h-4 text-indigo-700"></i>
+              <span class="text-xs font-bold text-indigo-950">ใช้เลขไมล์รถจริง (เมื่อซ่อมไมล์แล้ว)</span>
             </div>
-            <div>
-              <label class="text-[11px] text-slate-500 block mb-0.5">เส้นทาง / กิจกรรม</label>
-              <input type="text" id="tripDesc" placeholder="เช่น ไปกลับออฟฟิศ" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="useOdometerToggle" onchange="toggleOdometerMode()" class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
+          <!-- SECTION A: กรณีเปิดใช้เลขไมล์จริง (Odometer Mode) -->
+          <div id="odometerSection" class="hidden space-y-2.5 pt-2 border-t border-indigo-200/60">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-indigo-900 font-semibold block mb-1">เลขไมล์ปัจจุบัน (กม.) *</label>
+                <input type="number" step="1" id="currentOdometer" placeholder="เช่น 142580" oninput="calculateStats()" class="w-full px-2.5 py-2 bg-white border border-indigo-300 rounded-lg text-sm font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-1">เลขไมล์ครั้งก่อนหน้า</label>
+                <input type="number" id="prevOdometer" placeholder="ระบบดึงให้อัตโนมัติ" oninput="calculateStats()" class="w-full px-2.5 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-600 focus:outline-none">
+              </div>
+            </div>
+            <div id="odometerDistanceTip" class="text-xs text-indigo-700 bg-white p-2 rounded-lg border border-indigo-100 flex justify-between">
+              <span>ระยะทางที่วิ่งได้:</span>
+              <span class="font-bold text-indigo-900" id="odometerDeltaText">0 กม.</span>
+            </div>
+          </div>
+
+          <!-- SECTION B: กรณีไมล์ยังเสีย (Estimated Mode - ค่าเริ่มต้น) -->
+          <div id="estimatedSection" class="space-y-3 pt-2 border-t border-indigo-200/60">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] text-slate-600">ระบุระยะทางประมาณการ:</span>
+              <a href="https://maps.google.com" target="_blank" class="text-xs text-blue-600 hover:underline flex items-center space-x-0.5">
+                <span>เปิด Maps</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="setQuickDistance(20, 'บ้าน-ที่ทำงาน')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                ทำงาน (~20 กม.)
+              </button>
+              <button type="button" onclick="setQuickDistance(50, 'วิ่งงานในเมือง')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                ในเมือง (~50 กม.)
+              </button>
+              <button type="button" onclick="setQuickDistance(100, 'ต่างจังหวัด')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                ต่างจังหวัด (~100 กม.)
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-0.5">ระยะทางรวม (กม.)</label>
+                <input type="number" step="1" id="estDistance" placeholder="เว้นว่างได้" oninput="calculateStats()" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-0.5">เส้นทาง / กิจกรรม</label>
+                <input type="text" id="tripDesc" placeholder="เช่น ไปกลับออฟฟิศ" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
             </div>
           </div>
 
           <!-- Preview Metric Result -->
-          <div id="statBox" class="hidden bg-white/90 p-2 rounded-lg border border-indigo-100 text-xs text-slate-600 grid grid-cols-2 gap-2">
+          <div id="statBox" class="hidden bg-white/95 p-2 rounded-lg border border-indigo-200 text-xs text-slate-700 grid grid-cols-2 gap-2">
             <div>อัตราสิ้นเปลือง: <span id="kmPerLiterText" class="font-bold text-indigo-700">-</span> กม./ลิตร</div>
             <div>ต้นทุนเดินทาง: <span id="costPerKmText" class="font-bold text-indigo-700">-</span> บาท/กม.</div>
           </div>
@@ -268,6 +298,50 @@
     document.getElementById('apiUrlInput').value = savedApiUrl;
     updateSyncStatusUI();
 
+    // Load saved Odometer Mode preference
+    const savedOdometerMode = localStorage.getItem('fuel_tracker_mode_odometer') === 'true';
+    document.getElementById('useOdometerToggle').checked = savedOdometerMode;
+    applyOdometerModeUI(savedOdometerMode);
+
+    function toggleOdometerMode() {
+      const isOdo = document.getElementById('useOdometerToggle').checked;
+      localStorage.setItem('fuel_tracker_mode_odometer', isOdo);
+      applyOdometerModeUI(isOdo);
+      calculateStats();
+    }
+
+    function applyOdometerModeUI(isOdo) {
+      const odoSec = document.getElementById('odometerSection');
+      const estSec = document.getElementById('estimatedSection');
+      const banner = document.getElementById('modeBanner');
+      const title = document.getElementById('modeBannerTitle');
+      const desc = document.getElementById('modeBannerDesc');
+
+      if (isOdo) {
+        odoSec.classList.remove('hidden');
+        estSec.classList.add('hidden');
+        banner.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-2.5 text-xs text-emerald-900 transition";
+        title.textContent = "โหมดปัจจุบัน: บันทึกด้วยเลขไมล์รถจริง (Odometer)";
+        desc.innerHTML = "ระบบจะคำนวณระยะทางและอัตราสิ้นเปลืองจาก <b>เลขไมล์ปัจจุบัน ลบด้วย เลขไมล์ครั้งก่อน</b> ให้อัตโนมัติ";
+        autoPopulatePreviousOdometer();
+      } else {
+        odoSec.classList.add('hidden');
+        estSec.classList.remove('hidden');
+        banner.className = "bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-2.5 text-xs text-amber-900 transition";
+        title.textContent = "โหมดปัจจุบัน: ทดแทนเลขไมล์เสีย";
+        desc.innerHTML = "ระบบจะคำนวณอัตราสิ้นเปลืองจาก <b>ระยะทางประมาณการ</b> (หากในอนาคตซ่อมไมล์แล้ว สามารถเปิดสวิตช์ใช้เลขไมล์จริงได้ทันที)";
+      }
+      lucide.createIcons();
+    }
+
+    function autoPopulatePreviousOdometer() {
+      const logs = getLocalLogs();
+      const lastWithOdo = logs.find(r => r.odometer && Number(r.odometer) > 0);
+      if (lastWithOdo) {
+        document.getElementById('prevOdometer').value = lastWithOdo.odometer;
+      }
+    }
+
     function updateSyncStatusUI() {
       const url = localStorage.getItem('fuel_tracker_api_url');
       const dot = document.getElementById('syncDot');
@@ -340,11 +414,26 @@
       calculateStats();
     }
 
+    function getEffectiveDistance() {
+      const isOdo = document.getElementById('useOdometerToggle').checked;
+      if (isOdo) {
+        const curr = parseFloat(document.getElementById('currentOdometer').value) || 0;
+        const prev = parseFloat(document.getElementById('prevOdometer').value) || 0;
+        if (curr > 0 && prev > 0 && curr >= prev) {
+          return curr - prev;
+        }
+        return 0;
+      } else {
+        return parseFloat(document.getElementById('estDistance').value) || 0;
+      }
+    }
+
     function calculateStats() {
       const totalCost = parseFloat(document.getElementById('totalCost').value) || 0;
       const liters = parseFloat(document.getElementById('liters').value) || 0;
-      const estDistance = parseFloat(document.getElementById('estDistance').value) || 0;
+      const isOdo = document.getElementById('useOdometerToggle').checked;
 
+      // Price per liter
       if (liters > 0 && totalCost > 0) {
         const pricePerLiter = (totalCost / liters).toFixed(2);
         document.getElementById('pricePerLiterDisplay').textContent = `${pricePerLiter} บาท/ลิตร`;
@@ -352,14 +441,29 @@
         document.getElementById('pricePerLiterDisplay').textContent = `0.00 บาท/ลิตร`;
       }
 
+      // Distance calculation
+      let distance = 0;
+      if (isOdo) {
+        const curr = parseFloat(document.getElementById('currentOdometer').value) || 0;
+        const prev = parseFloat(document.getElementById('prevOdometer').value) || 0;
+        if (curr > 0 && prev > 0 && curr >= prev) {
+          distance = curr - prev;
+          document.getElementById('odometerDeltaText').textContent = `${distance} กม.`;
+        } else {
+          document.getElementById('odometerDeltaText').textContent = `- กม.`;
+        }
+      } else {
+        distance = parseFloat(document.getElementById('estDistance').value) || 0;
+      }
+
       const statBox = document.getElementById('statBox');
-      if (estDistance > 0 && (liters > 0 || totalCost > 0)) {
+      if (distance > 0 && (liters > 0 || totalCost > 0)) {
         statBox.classList.remove('hidden');
         if (liters > 0) {
-          document.getElementById('kmPerLiterText').textContent = (estDistance / liters).toFixed(2);
+          document.getElementById('kmPerLiterText').textContent = (distance / liters).toFixed(2);
         }
         if (totalCost > 0) {
-          document.getElementById('costPerKmText').textContent = (totalCost / estDistance).toFixed(2);
+          document.getElementById('costPerKmText').textContent = (totalCost / distance).toFixed(2);
         }
       } else {
         statBox.classList.add('hidden');
@@ -373,7 +477,9 @@
 
       const cost = parseFloat(document.getElementById('totalCost').value) || 0;
       const liters = parseFloat(document.getElementById('liters').value) || 0;
-      const dist = parseFloat(document.getElementById('estDistance').value) || 0;
+      const isOdo = document.getElementById('useOdometerToggle').checked;
+      const currentOdo = parseFloat(document.getElementById('currentOdometer').value) || null;
+      const distance = getEffectiveDistance();
 
       const record = {
         id: 'rec_' + Date.now(),
@@ -383,21 +489,29 @@
         liters: liters,
         pricePerLiter: liters > 0 ? (cost / liters).toFixed(2) : "0",
         isFullTank: document.getElementById('isFullTank').checked,
-        estDistance: dist,
-        tripDesc: document.getElementById('tripDesc').value.trim() || "-",
-        kmPerLiter: (dist > 0 && liters > 0) ? (dist / liters).toFixed(2) : "-",
-        costPerKm: (dist > 0 && cost > 0) ? (cost / dist).toFixed(2) : "-",
+        isOdometerMode: isOdo,
+        odometer: isOdo ? currentOdo : null,
+        estDistance: distance,
+        tripDesc: isOdo ? 'ไมล์รถจริง' : (document.getElementById('tripDesc').value.trim() || "-"),
+        kmPerLiter: (distance > 0 && liters > 0) ? (distance / liters).toFixed(2) : "-",
+        costPerKm: (distance > 0 && cost > 0) ? (cost / distance).toFixed(2) : "-",
         note: document.getElementById('note').value.trim()
       };
 
-      // Always save locally first (Instant feedback)
+      // Always save locally first
       const logs = getLocalLogs();
       logs.unshift(record);
       saveLocalLogs(logs);
 
-      // Reset Form
+      // Auto update next previous odometer
+      if (isOdo && currentOdo) {
+        document.getElementById('prevOdometer').value = currentOdo;
+      }
+
+      // Reset Form fields
       document.getElementById('totalCost').value = '';
       document.getElementById('liters').value = '';
+      document.getElementById('currentOdometer').value = '';
       document.getElementById('estDistance').value = '';
       document.getElementById('tripDesc').value = '';
       document.getElementById('note').value = '';
@@ -443,7 +557,9 @@
         <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm text-xs space-y-1 relative">
           <div class="flex justify-between items-center text-slate-500 font-medium">
             <span>${item.date ? item.date.replace('T', ' ') : '-'}</span>
-            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">${item.fuelType || '-'}</span>
+            <span class="px-2 py-0.5 rounded-full ${item.isOdometerMode ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'} font-bold">
+              ${item.fuelType || '-'} ${item.isOdometerMode ? '• ไมล์จริง' : ''}
+            </span>
           </div>
           <div class="flex justify-between items-baseline pt-1">
             <div>
@@ -455,6 +571,11 @@
               @ ${item.pricePerLiter} ฿/L
             </div>
           </div>
+          ${item.odometer ? `
+            <div class="text-[11px] text-indigo-900 font-medium pt-0.5">
+              📟 เลขไมล์: ${Number(item.odometer).toLocaleString()} กม.
+            </div>
+          ` : ''}
           ${item.estDistance && item.estDistance > 0 ? `
             <div class="pt-1 border-t border-slate-100 flex justify-between text-indigo-700">
               <span>${item.tripDesc}: ${item.estDistance} กม.</span>
@@ -504,10 +625,11 @@
     function exportCSV() {
       const logs = getLocalLogs();
       if (logs.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
-      const headers = ["วันที่", "ประเภทน้ำมัน", "ยอดเงิน", "จำนวนลิตร", "ราคาต่อลิตร", "เต็มถัง", "ระยะทางประมาณการ", "อัตราสิ้นเปลือง", "ต้นทุนต่อกม", "เส้นทาง", "หมายเหตุ"];
+      const headers = ["วันที่", "ประเภทน้ำมัน", "ยอดเงิน", "จำนวนลิตร", "ราคาต่อลิตร", "เต็มถัง", "เลขไมล์รถ", "ระยะทางวิ่ง", "โหมดระยะทาง", "อัตราสิ้นเปลือง", "ต้นทุนต่อกม", "เส้นทาง", "หมายเหตุ"];
       const rows = logs.map(r => [
         `"${r.date}"`, `"${r.fuelType}"`, r.totalCost, r.liters, r.pricePerLiter,
-        `"${r.isFullTank ? 'ใช่' : 'ไม่ใช่'}"`, r.estDistance, r.kmPerLiter, r.costPerKm,
+        `"${r.isFullTank ? 'ใช่' : 'ไม่ใช่'}"`, r.odometer || "-", r.estDistance,
+        `"${r.isOdometerMode ? 'ไมล์จริง' : 'ประมาณการ'}"`, r.kmPerLiter, r.costPerKm,
         `"${r.tripDesc}"`, `"${r.note}"`
       ]);
       const csv = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");

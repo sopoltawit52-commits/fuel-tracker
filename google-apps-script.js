@@ -10,7 +10,7 @@ function doGet(e) {
     
     var headers = data[0];
     var rows = [];
-    // นำ 20 รายการล่าสุด (ย้อนหลังจากแถวล่าสุด)
+    // นำ 20 รายการล่าสุด
     for (var i = data.length - 1; i >= Math.max(1, data.length - 20); i--) {
       var item = {};
       for (var j = 0; j < headers.length; j++) {
@@ -41,8 +41,12 @@ function doPost(e) {
     var liters = Number(payload.liters) || 0;
     var pricePerLiter = liters > 0 ? (totalCost / liters).toFixed(2) : (payload.pricePerLiter || 0);
     var isFullTank = payload.isFullTank ? "ใช่ (เต็มถัง)" : "ไม่ใช่";
-    var estDistance = Number(payload.estDistance) || 0; // ระยะทางโดยประมาณจาก Google Maps หรือเส้นทางประจำ
-    var tripDesc = payload.tripDesc || "-"; // เช่น บ้าน-ที่ทำงาน, วิ่งส่งของในเมือง
+    
+    // รองรับทั้งเลขไมล์จริง และระยะทางประมาณการ
+    var odometer = payload.odometer ? Number(payload.odometer) : "-";
+    var estDistance = Number(payload.estDistance) || 0; 
+    var distanceType = payload.isOdometerMode ? "เลขไมล์จริง" : "ประมาณการ";
+    var tripDesc = payload.tripDesc || "-";
     var costPerKm = (estDistance > 0 && totalCost > 0) ? (totalCost / estDistance).toFixed(2) : "-";
     var kmPerLiter = (estDistance > 0 && liters > 0) ? (estDistance / liters).toFixed(2) : "-";
     var note = payload.note || "";
@@ -57,7 +61,9 @@ function doPost(e) {
       liters,
       pricePerLiter,
       isFullTank,
+      odometer,
       estDistance,
+      distanceType,
       costPerKm,
       kmPerLiter,
       tripDesc,
@@ -70,6 +76,8 @@ function doPost(e) {
       data: {
         totalCost: totalCost,
         liters: liters,
+        odometer: odometer,
+        estDistance: estDistance,
         costPerKm: costPerKm,
         kmPerLiter: kmPerLiter
       }
@@ -89,7 +97,7 @@ function getSheet() {
   
   if (!sheet) {
     sheet = ss.insertSheet("บันทึกน้ำมัน");
-    // สร้างหัวตาราง (Headers) อัตโนมัติหากยังไม่มี
+    // สร้างหัวตาราง (Headers) อัตโนมัติ
     sheet.appendRow([
       "Timestamp",
       "วันที่เติม",
@@ -98,13 +106,15 @@ function getSheet() {
       "จำนวนลิตร",
       "ราคาต่อลิตร (บาท)",
       "เติมเต็มถัง",
-      "ระยะทางประมาณการ (กม.)",
+      "เลขไมล์รถ (กม.)",
+      "ระยะทางที่วิ่ง (กม.)",
+      "โหมดระยะทาง",
       "ต้นทุนต่อกม. (บาท/กม.)",
       "อัตราสิ้นเปลือง (กม./ลิตร)",
       "เส้นทาง/การใช้งาน",
       "หมายเหตุ"
     ]);
-    sheet.getRange("A1:L1").setFontWeight("bold").setBackground("#E2E8F0");
+    sheet.getRange("A1:N1").setFontWeight("bold").setBackground("#E2E8F0");
     sheet.setFrozenRows(1);
   }
   return sheet;

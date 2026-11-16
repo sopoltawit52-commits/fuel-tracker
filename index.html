@@ -443,9 +443,15 @@
     const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
     document.getElementById('dateInput').value = localISOTime;
 
+    // Default Google Apps Script URL (ฝังให้ใช้งานได้ทุกเครื่องทันที)
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzChF1lhsZ2_io4u2hlA4lfqQ3b4QNg_ziCHHXsOc33MQwblT3vtpbLcUZDHDgvQSGHBA/exec";
+
     // Load saved API URL & Update Status
-    const savedApiUrl = localStorage.getItem('fuel_tracker_api_url') || '';
+    const savedApiUrl = localStorage.getItem('fuel_tracker_api_url') || DEFAULT_GAS_URL;
     document.getElementById('apiUrlInput').value = savedApiUrl;
+    if (!localStorage.getItem('fuel_tracker_api_url')) {
+      localStorage.setItem('fuel_tracker_api_url', DEFAULT_GAS_URL);
+    }
     updateSyncStatusUI();
 
     // Load saved Odometer Mode preference
@@ -493,15 +499,15 @@
     }
 
     function updateSyncStatusUI() {
-      const url = localStorage.getItem('fuel_tracker_api_url');
+      const url = localStorage.getItem('fuel_tracker_api_url') || DEFAULT_GAS_URL;
       const dot = document.getElementById('syncDot');
       const statusText = document.getElementById('syncStatusText');
       if (url) {
         dot.className = "w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-1.5";
-        if (statusText) statusText.innerHTML = "<span class='text-emerald-600'>เชื่อมต่อ Google Sheets แล้ว</span>";
+        if (statusText) statusText.innerHTML = "<span class='text-emerald-600 font-semibold'>เชื่อมต่อ Google Sheets แล้ว ✅</span>";
       } else {
         dot.className = "w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5";
-        if (statusText) statusText.innerHTML = "<span class='text-amber-600'>บันทึกลงเครื่อง (Local)</span>";
+        if (statusText) statusText.innerHTML = "<span class='text-amber-600 font-semibold'>บันทึกลงเครื่อง (Local)</span>";
       }
     }
 
@@ -636,7 +642,7 @@
 
     async function handleSubmit(e) {
       e.preventDefault();
-      const apiUrl = localStorage.getItem('fuel_tracker_api_url');
+      const apiUrl = localStorage.getItem('fuel_tracker_api_url') || DEFAULT_GAS_URL;
       const submitBtn = document.getElementById('fuelForm').querySelector('button[type="submit"]');
 
       const cost = parseFloat(document.getElementById('totalCost').value) || 0;
@@ -805,7 +811,7 @@
     }
 
     async function syncLocalToCloud() {
-      const url = localStorage.getItem('fuel_tracker_api_url');
+      const url = localStorage.getItem('fuel_tracker_api_url') || DEFAULT_GAS_URL;
       if (!url) return alert('กรุณาระบุ URL ของ Google Apps Script ก่อนซิงค์');
       const logs = getLocalLogs();
       if (logs.length === 0) return alert('ไม่มีรายการบันทึกในเครื่อง');

@@ -26,18 +26,23 @@
 <body class="bg-slate-100 min-h-screen text-slate-800 pb-16">
 
   <!-- Header -->
-  <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg sticky top-0 z-40">
+  <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white shadow-lg sticky top-0 z-40">
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <i data-lucide="fuel" class="w-7 h-7 text-amber-300"></i>
+      <div class="flex items-center space-x-2.5">
+        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+          <i data-lucide="fuel" class="w-6 h-6 text-amber-300"></i>
+        </div>
         <div>
-          <h1 class="text-lg font-bold leading-tight">Fuel Log Tracker</h1>
+          <h1 class="text-base font-bold leading-tight">Fuel Log Tracker</h1>
           <p class="text-xs text-blue-200">ระบบบันทึกค่าน้ำมัน (No-Odometer)</p>
         </div>
       </div>
-      <button onclick="toggleSettingsModal()" class="p-2 rounded-full hover:bg-white/10 transition">
-        <i data-lucide="settings" class="w-5 h-5 text-blue-100"></i>
-      </button>
+      <div class="flex items-center space-x-1">
+        <button onclick="toggleSettingsModal()" class="p-2 rounded-full hover:bg-white/10 transition relative">
+          <i data-lucide="settings" class="w-5 h-5 text-blue-100"></i>
+          <span id="syncDot" class="w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5"></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -45,23 +50,39 @@
   <main class="max-w-md mx-auto px-4 pt-4">
 
     <!-- Notice Card: แก้ปัญหาไมล์เสีย -->
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-3 text-xs text-amber-800">
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 shadow-sm flex items-start space-x-2.5 text-xs text-amber-900">
       <i data-lucide="info" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"></i>
       <div>
-        <span class="font-semibold">โหมดทดแทนเลขไมล์เสีย:</span> 
-        ระบบใช้การคำนวณจาก <b>ระยะทางประมาณการ (Google Maps / เส้นทางประจำ)</b> และ <b>อัตราการใช้ตามระยะเวลา (บาท/สัปดาห์)</b> แทนเลขไมล์รถ
+        <span class="font-bold">โหมดทดแทนเลขไมล์เสีย:</span> 
+        ระบบคำนวณอัตราสิ้นเปลืองจาก <b>ระยะทางประมาณการ (Google Maps / เส้นทางประจำ)</b> และ <b>สถิติค่าใช้จ่ายตามรอบเวลา</b> ให้โดยอัตโนมัติ
+      </div>
+    </div>
+
+    <!-- Quick Stats Summary -->
+    <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+      <div class="bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm">
+        <div class="text-[11px] text-slate-500 font-medium">ยอดรวมค่าน้ำมัน</div>
+        <div id="statTotalCost" class="text-sm font-bold text-blue-600 mt-0.5">฿0</div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm">
+        <div class="text-[11px] text-slate-500 font-medium">ปริมาณรวม</div>
+        <div id="statTotalLiters" class="text-sm font-bold text-indigo-600 mt-0.5">0 ลิตร</div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm">
+        <div class="text-[11px] text-slate-500 font-medium">สิ้นเปลืองเฉลี่ย</div>
+        <div id="statAvgKmL" class="text-sm font-bold text-emerald-600 mt-0.5">-</div>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex bg-slate-200 p-1 rounded-xl mb-4 text-sm font-medium">
+    <div class="flex bg-slate-200 p-1 rounded-xl mb-4 text-xs font-semibold">
       <button id="tabRecordBtn" onclick="switchTab('record')" class="flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1">
         <i data-lucide="plus-circle" class="w-4 h-4"></i>
         <span>บันทึกเติมน้ำมัน</span>
       </button>
       <button id="tabHistoryBtn" onclick="switchTab('history')" class="flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1">
         <i data-lucide="history" class="w-4 h-4"></i>
-        <span>ประวัติล่าสุด</span>
+        <span>ประวัติ (<span id="historyBadgeCount">0</span>)</span>
       </button>
     </div>
 
@@ -72,9 +93,7 @@
         <!-- วันที่และเวลา -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่และเวลาเติม</label>
-          <div class="relative">
-            <input type="datetime-local" id="dateInput" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
+          <input type="datetime-local" id="dateInput" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <!-- ชนิดน้ำมัน -->
@@ -112,8 +131,8 @@
         <!-- ตัวเลือกเติมเต็มถัง -->
         <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
           <div>
-            <div class="text-sm font-medium text-slate-800">เติมเต็มถังหรือไม่?</div>
-            <div class="text-xs text-slate-500">ช่วยใช้วัดรอบการใช้งานเต็มถัง</div>
+            <div class="text-xs font-semibold text-slate-800">เติมเต็มถังหรือไม่?</div>
+            <div class="text-[11px] text-slate-500">ช่วยวัดรอบการใช้งานต่อถัง</div>
           </div>
           <label class="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" id="isFullTank" class="sr-only peer" checked>
@@ -142,7 +161,7 @@
             <button type="button" onclick="setQuickDistance(50, 'วิ่งงานในเมือง')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
               ในเมือง (~50 กม.)
             </button>
-            <button type="button" onclick="setQuickDistance(100, 'ต่างจังหวัด/วิ่งยาว')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
+            <button type="button" onclick="setQuickDistance(100, 'ต่างจังหวัด')" class="text-xs bg-white border border-indigo-200 text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
               ต่างจังหวัด (~100 กม.)
             </button>
           </div>
@@ -153,7 +172,7 @@
               <input type="number" step="1" id="estDistance" placeholder="เว้นว่างได้" oninput="calculateStats()" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
             </div>
             <div>
-              <label class="text-[11px] text-slate-500 block mb-0.5">เส้นทาง / ประเภทงาน</label>
+              <label class="text-[11px] text-slate-500 block mb-0.5">เส้นทาง / กิจกรรม</label>
               <input type="text" id="tripDesc" placeholder="เช่น ไปกลับออฟฟิศ" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
             </div>
           </div>
@@ -168,13 +187,13 @@
         <!-- หมายเหตุ -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ / ปั๊มน้ำมัน</label>
-          <input type="text" id="note" placeholder="เช่น ปั๊ม ปตท. วิภาวดี, มีโปรแต้มสะสม" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="note" placeholder="เช่น ปั๊ม ปตท. รัชดา" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <!-- Submit Button -->
         <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center space-x-2 disabled:opacity-50">
           <i data-lucide="save" class="w-5 h-5"></i>
-          <span>บันทึกข้อมูลลง Google Sheet</span>
+          <span>บันทึกข้อมูล</span>
         </button>
 
       </form>
@@ -183,20 +202,17 @@
     <!-- View 2: ประวัติล่าสุด -->
     <div id="viewHistory" class="hidden space-y-3">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-bold text-slate-700">ประวัติการเติม 20 รายการล่าสุด</h2>
-        <button onclick="fetchHistory()" class="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-          <span>รีเฟรช</span>
-        </button>
-      </div>
-
-      <div id="historyLoading" class="hidden py-8 text-center text-slate-400">
-        <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500"></i>
-        <p class="text-xs">กำลังโหลดข้อมูลจาก Google Sheets...</p>
+        <h2 class="text-xs font-bold text-slate-700">ประวัติการบันทึก (<span id="historyTotalText">0</span>)</h2>
+        <div class="flex space-x-2">
+          <button onclick="exportCSV()" class="text-xs text-emerald-600 hover:underline flex items-center space-x-1">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export CSV</span>
+          </button>
+        </div>
       </div>
 
       <div id="historyList" class="space-y-2">
-        <!-- รายการจะถูกแทรกที่นี่ -->
+        <!-- รายการประวัติ -->
       </div>
     </div>
 
@@ -206,23 +222,28 @@
   <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="font-bold text-slate-800 text-base">ตั้งค่าการเชื่อมต่อ Google Sheets</h3>
+        <h3 class="font-bold text-slate-800 text-sm">การเชื่อมต่อ Google Sheets</h3>
         <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
       <p class="text-xs text-slate-500 mb-3">
-        วาง URL ของ Google Apps Script (Web App) ที่ได้จากการ Deploy
+        วาง URL ของ Google Apps Script ที่ได้จากการ Deploy หากยังไม่มี เว็บจะบันทึกลงในเครื่องให้โดยอัตโนมัติ
       </p>
-      <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs mb-4 focus:ring-2 focus:ring-blue-500">
+      <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs mb-3 focus:ring-2 focus:ring-blue-500">
       
-      <div class="flex space-x-2">
+      <div class="flex space-x-2 mb-3">
         <button onclick="saveApiUrl()" class="flex-1 bg-blue-600 text-white font-medium py-2 rounded-xl text-xs hover:bg-blue-700">
           บันทึก URL
         </button>
         <button onclick="toggleSettingsModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-xl text-xs">
-          ยกเลิก
+          ปิด
         </button>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
+        <span class="text-slate-500">สถานะ: <b id="syncStatusText" class="text-amber-600">บันทึกลงเครื่อง (Local)</b></span>
+        <button onclick="syncLocalToCloud()" id="syncBtn" class="text-blue-600 font-semibold hover:underline">ซิงค์ขึ้นชีท</button>
       </div>
     </div>
   </div>
@@ -242,9 +263,23 @@
     const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
     document.getElementById('dateInput').value = localISOTime;
 
-    // Load saved API URL
+    // Load saved API URL & Update Status
     const savedApiUrl = localStorage.getItem('fuel_tracker_api_url') || '';
     document.getElementById('apiUrlInput').value = savedApiUrl;
+    updateSyncStatusUI();
+
+    function updateSyncStatusUI() {
+      const url = localStorage.getItem('fuel_tracker_api_url');
+      const dot = document.getElementById('syncDot');
+      const statusText = document.getElementById('syncStatusText');
+      if (url) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 absolute top-1.5 right-1.5";
+        if (statusText) statusText.innerHTML = "<span class='text-emerald-600'>เชื่อมต่อ Google Sheets แล้ว</span>";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5";
+        if (statusText) statusText.innerHTML = "<span class='text-amber-600'>บันทึกลงเครื่อง (Local)</span>";
+      }
+    }
 
     function toggleSettingsModal() {
       const modal = document.getElementById('settingsModal');
@@ -254,8 +289,9 @@
     function saveApiUrl() {
       const val = document.getElementById('apiUrlInput').value.trim();
       localStorage.setItem('fuel_tracker_api_url', val);
+      updateSyncStatusUI();
       toggleSettingsModal();
-      showToast('บันทึก Web App URL เรียบร้อย');
+      showToast('บันทึกการตั้งค่าเรียบร้อย');
     }
 
     function showToast(msg) {
@@ -263,6 +299,18 @@
       document.getElementById('toastMessage').textContent = msg;
       toast.classList.remove('opacity-0');
       setTimeout(() => toast.classList.add('opacity-0'), 3000);
+    }
+
+    function getLocalLogs() {
+      const str = localStorage.getItem('fuel_records_db');
+      if (!str) return [];
+      try { return JSON.parse(str); } catch (e) { return []; }
+    }
+
+    function saveLocalLogs(logs) {
+      localStorage.setItem('fuel_records_db', JSON.stringify(logs));
+      updateDashboardSummary();
+      renderHistoryList();
     }
 
     function switchTab(tab) {
@@ -281,7 +329,7 @@
         historyView.classList.remove('hidden');
         historyBtn.className = "flex-1 py-2 rounded-lg bg-white text-blue-700 shadow-sm transition flex items-center justify-center space-x-1";
         recordBtn.className = "flex-1 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center space-x-1";
-        fetchHistory();
+        renderHistoryList();
       }
       lucide.createIcons();
     }
@@ -321,110 +369,174 @@
     async function handleSubmit(e) {
       e.preventDefault();
       const apiUrl = localStorage.getItem('fuel_tracker_api_url');
-      if (!apiUrl) {
-        toggleSettingsModal();
-        alert('กรุณาตั้งค่า Google Apps Script Web App URL ก่อนใช้งาน');
-        return;
-      }
-
       const submitBtn = document.getElementById('fuelForm').querySelector('button[type="submit"]');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i><span>กำลังส่งข้อมูล...</span>`;
-      lucide.createIcons();
 
-      const payload = {
+      const cost = parseFloat(document.getElementById('totalCost').value) || 0;
+      const liters = parseFloat(document.getElementById('liters').value) || 0;
+      const dist = parseFloat(document.getElementById('estDistance').value) || 0;
+
+      const record = {
+        id: 'rec_' + Date.now(),
         date: document.getElementById('dateInput').value,
         fuelType: document.getElementById('fuelType').value,
-        totalCost: document.getElementById('totalCost').value,
-        liters: document.getElementById('liters').value,
+        totalCost: cost,
+        liters: liters,
+        pricePerLiter: liters > 0 ? (cost / liters).toFixed(2) : "0",
         isFullTank: document.getElementById('isFullTank').checked,
-        estDistance: document.getElementById('estDistance').value || 0,
-        tripDesc: document.getElementById('tripDesc').value,
-        note: document.getElementById('note').value
+        estDistance: dist,
+        tripDesc: document.getElementById('tripDesc').value.trim() || "-",
+        kmPerLiter: (dist > 0 && liters > 0) ? (dist / liters).toFixed(2) : "-",
+        costPerKm: (dist > 0 && cost > 0) ? (cost / dist).toFixed(2) : "-",
+        note: document.getElementById('note').value.trim()
       };
 
-      try {
-        // ใช้ text/plain เพื่อเลี่ยง CORS preflight options บน Google Apps Script
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
+      // Always save locally first (Instant feedback)
+      const logs = getLocalLogs();
+      logs.unshift(record);
+      saveLocalLogs(logs);
 
-        const res = await response.json();
-        if (res.success) {
-          showToast('บันทึกสำเร็จลง Google Sheets แล้ว!');
-          document.getElementById('totalCost').value = '';
-          document.getElementById('liters').value = '';
-          document.getElementById('estDistance').value = '';
-          document.getElementById('tripDesc').value = '';
-          document.getElementById('note').value = '';
-          calculateStats();
-        } else {
-          showToast('เกิดข้อผิดพลาด: ' + (res.error || 'ไม่ทราบสาเหตุ'));
-        }
-      } catch (err) {
-        console.error(err);
-        showToast('เชื่อมต่อล้มเหลว กรุณาตรวจ URL ของ Apps Script');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span>บันทึกข้อมูลลง Google Sheet</span>`;
+      // Reset Form
+      document.getElementById('totalCost').value = '';
+      document.getElementById('liters').value = '';
+      document.getElementById('estDistance').value = '';
+      document.getElementById('tripDesc').value = '';
+      document.getElementById('note').value = '';
+      calculateStats();
+
+      // If Google Sheet API is configured, sync to Cloud
+      if (apiUrl) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin"></i><span>กำลังซิงค์ Google Sheets...</span>`;
         lucide.createIcons();
+
+        try {
+          await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(record)
+          });
+          showToast('บันทึกลงเครื่องและซิงค์ชีทแล้ว! ✅');
+        } catch (err) {
+          showToast('บันทึกลงเครื่องแล้ว (ซิงค์ชีทล้มเหลว ตรวจ URL)');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span>บันทึกข้อมูล</span>`;
+          lucide.createIcons();
+        }
+      } else {
+        showToast('บันทึกเรียบร้อย (บันทึกในเครื่อง) ✅');
       }
     }
 
-    async function fetchHistory() {
-      const apiUrl = localStorage.getItem('fuel_tracker_api_url');
+    function renderHistoryList() {
+      const logs = getLocalLogs();
       const listEl = document.getElementById('historyList');
-      const loadingEl = document.getElementById('historyLoading');
+      document.getElementById('historyBadgeCount').textContent = logs.length;
+      document.getElementById('historyTotalText').textContent = logs.length;
 
-      if (!apiUrl) {
-        listEl.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">ยังไม่ได้ระบุ Google Apps Script URL<br>กรุณากดที่ไอคอนเฟืองด้านบนเพื่อตั้งค่า</div>`;
+      if (logs.length === 0) {
+        listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">ยังไม่มีรายการบันทึก<br>กดปุ่ม "บันทึกเติมน้ำมัน" ด้านบนเพื่อเริ่มรายการแรก</div>`;
         return;
       }
 
-      loadingEl.classList.remove('hidden');
-      listEl.innerHTML = '';
-
-      try {
-        const res = await fetch(`${apiUrl}?action=getHistory`);
-        const json = await res.json();
-        
-        loadingEl.classList.add('hidden');
-
-        if (json.success && json.rows && json.rows.length > 0) {
-          listEl.innerHTML = json.rows.map(item => `
-            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm text-xs space-y-1">
-              <div class="flex justify-between items-center text-slate-500 font-medium">
-                <span>${item['วันที่เติม'] ? item['วันที่เติม'].toString().replace('T', ' ') : '-'}</span>
-                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">${item['ประเภทน้ำมัน'] || '-'}</span>
-              </div>
-              <div class="flex justify-between items-baseline pt-1">
-                <div>
-                  <span class="text-base font-bold text-slate-800">${item['ยอดเงิน (บาท)']}</span>
-                  <span class="text-slate-500">บาท (${item['จำนวนลิตร']} ลิตร)</span>
-                </div>
-                <div class="text-slate-600 font-semibold">
-                  @ ${item['ราคาต่อลิตร (บาท)']} ฿/L
-                </div>
-              </div>
-              ${item['ระยะทางประมาณการ (กม.)'] && item['ระยะทางประมาณการ (กม.)'] > 0 ? `
-                <div class="pt-1 border-t border-slate-100 flex justify-between text-indigo-700">
-                  <span>${item['เส้นทาง/การใช้งาน'] || 'การเดินทาง'}: ${item['ระยะทางประมาณการ (กม.)']} กม.</span>
-                  <span>~${item['อัตราสิ้นเปลือง (กม./ลิตร)']} กม./ลิตร</span>
-                </div>
-              ` : ''}
-              ${item['หมายเหตุ'] ? `<div class="text-slate-400 italic">โน้ต: ${item['หมายเหตุ']}</div>` : ''}
+      listEl.innerHTML = logs.map(item => `
+        <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm text-xs space-y-1 relative">
+          <div class="flex justify-between items-center text-slate-500 font-medium">
+            <span>${item.date ? item.date.replace('T', ' ') : '-'}</span>
+            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">${item.fuelType || '-'}</span>
+          </div>
+          <div class="flex justify-between items-baseline pt-1">
+            <div>
+              <span class="text-base font-bold text-slate-800">฿${Number(item.totalCost).toLocaleString()}</span>
+              <span class="text-slate-500">(${item.liters} ลิตร)</span>
+              ${item.isFullTank ? '<span class="ml-1 text-[10px] text-emerald-600 font-semibold">• เต็มถัง</span>' : ''}
             </div>
-          `).join('');
-        } else {
-          listEl.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">ยังไม่มีประวัติการบันทึก</div>`;
-        }
-      } catch (err) {
-        loadingEl.classList.add('hidden');
-        listEl.innerHTML = `<div class="p-4 text-center text-xs text-red-500">ไม่สามารถดึงข้อมูลได้: ${err.message}</div>`;
+            <div class="text-slate-600 font-semibold">
+              @ ${item.pricePerLiter} ฿/L
+            </div>
+          </div>
+          ${item.estDistance && item.estDistance > 0 ? `
+            <div class="pt-1 border-t border-slate-100 flex justify-between text-indigo-700">
+              <span>${item.tripDesc}: ${item.estDistance} กม.</span>
+              <span>~${item.kmPerLiter} กม./ลิตร (฿${item.costPerKm}/กม.)</span>
+            </div>
+          ` : ''}
+          ${item.note ? `<div class="text-slate-400 italic">โน้ต: ${item.note}</div>` : ''}
+          <button onclick="deleteRecord('${item.id}')" class="text-slate-300 hover:text-red-500 text-xs absolute top-2 right-2 px-1">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function deleteRecord(id) {
+      if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
+        let logs = getLocalLogs();
+        logs = logs.filter(r => r.id !== id);
+        saveLocalLogs(logs);
+        showToast('ลบรายการแล้ว');
       }
     }
+
+    function updateDashboardSummary() {
+      const logs = getLocalLogs();
+      let totalCost = 0;
+      let totalLiters = 0;
+      let totalDist = 0;
+      let distLiters = 0;
+
+      logs.forEach(r => {
+        const c = parseFloat(r.totalCost) || 0;
+        const l = parseFloat(r.liters) || 0;
+        const d = parseFloat(r.estDistance) || 0;
+        totalCost += c;
+        totalLiters += l;
+        if (d > 0 && l > 0) {
+          totalDist += d;
+          distLiters += l;
+        }
+      });
+
+      document.getElementById('statTotalCost').textContent = '฿' + totalCost.toLocaleString();
+      document.getElementById('statTotalLiters').textContent = totalLiters.toFixed(1) + ' L';
+      document.getElementById('statAvgKmL').textContent = (totalDist > 0 && distLiters > 0) ? (totalDist / distLiters).toFixed(1) + ' กม./L' : '-';
+      document.getElementById('historyBadgeCount').textContent = logs.length;
+    }
+
+    function exportCSV() {
+      const logs = getLocalLogs();
+      if (logs.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
+      const headers = ["วันที่", "ประเภทน้ำมัน", "ยอดเงิน", "จำนวนลิตร", "ราคาต่อลิตร", "เต็มถัง", "ระยะทางประมาณการ", "อัตราสิ้นเปลือง", "ต้นทุนต่อกม", "เส้นทาง", "หมายเหตุ"];
+      const rows = logs.map(r => [
+        `"${r.date}"`, `"${r.fuelType}"`, r.totalCost, r.liters, r.pricePerLiter,
+        `"${r.isFullTank ? 'ใช่' : 'ไม่ใช่'}"`, r.estDistance, r.kmPerLiter, r.costPerKm,
+        `"${r.tripDesc}"`, `"${r.note}"`
+      ]);
+      const csv = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `fuel_tracker_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    }
+
+    async function syncLocalToCloud() {
+      const url = localStorage.getItem('fuel_tracker_api_url');
+      if (!url) return alert('กรุณาระบุ URL ของ Google Apps Script ก่อนซิงค์');
+      const logs = getLocalLogs();
+      if (logs.length === 0) return alert('ไม่มีรายการบันทึกในเครื่อง');
+      showToast(`กำลังส่งข้อมูล ${logs.length} รายการขึ้นชีท...`);
+      for (const item of logs) {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(item)
+        });
+      }
+      showToast('ซิงค์ข้อมูลขึ้น Google Sheets สำเร็จ!');
+    }
+
+    // Init
+    updateDashboardSummary();
+    renderHistoryList();
   </script>
 </body>
 </html>
